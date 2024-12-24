@@ -15,6 +15,7 @@ func main() {
 	defer fd.Close()
 
 	torrent := parse.ParseTorrent(fd)
-	fmt.Printf("Announce part of the file %s,%d,%d\n", torrent.Info.Name,torrent.Info.Length,torrent.Info.PieceLength)
-  fmt.Println(torrent.AnnounceList)
+	fmt.Printf("Announce part of the file %s,%d,%d\n", torrent.Info.Name, torrent.Info.Length, torrent.Info.PieceLength)
+	fmt.Println(torrent.AnnounceList)
+	fmt.Println(torrent.InfoHash)
 }
