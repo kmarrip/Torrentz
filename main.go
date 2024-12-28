@@ -1,10 +1,12 @@
 package main
 
 import (
-	"fmt"
-	"github.com/kmarrip/torrentz/parse"
 	"log"
 	"os"
+
+	"github.com/kmarrip/torrentz/parse"
+	"github.com/kmarrip/torrentz/peer"
+	"github.com/kmarrip/torrentz/tracker"
 )
 
 func main() {
@@ -15,7 +17,7 @@ func main() {
 	defer fd.Close()
 
 	torrent := parse.ParseTorrent(fd)
-	fmt.Printf("Announce part of the file %s,%d,%d\n", torrent.Info.Name, torrent.Info.Length, torrent.Info.PieceLength)
-	fmt.Println(torrent.AnnounceList)
-	fmt.Println(torrent.InfoHash)
+	peers := tracker.GetPeers(tracker.BuildTrackerUrl(torrent))
+	
+  peer.Handshake(torrent,peers[2])
 }

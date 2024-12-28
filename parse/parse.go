@@ -5,7 +5,7 @@ import (
 	"crypto/sha1"
 	"io"
 	"log"
-	"net/url"
+	"math/rand"
 
 	"github.com/zeebo/bencode"
 )
@@ -14,6 +14,7 @@ type Torrent struct {
 	Announce     string     `bencode:"announce"`
 	AnnounceList [][]string `bencode:"announce-list"`
 	InfoHash     string
+	PeerId       string
 	Info         struct {
 		Name        string `bencode:"name,omitempty"`
 		Length      int64  `bencode:"length"`
@@ -23,6 +24,32 @@ type Torrent struct {
 
 	// TODO
 	// multi files are not supported here
+}
+
+// ParseTorrent()
+// input is file descriptor and the output is bdecoded torrent struct
+func ParseTorrent(file io.Reader) Torrent {
+	var torrent Torrent
+	err := bencode.NewDecoder(file).Decode(&torrent)
+	if err != nil {
+		log.Fatalln(err)
+		log.Fatalln("Error parsing torrent file")
+	}
+	torrent.buildInfoHash()
+	torrent.buildPeerId()
+	return torrent
+}
+
+// buildPeerId()
+// builds a random 20 byte string
+func (t *Torrent) buildPeerId() {
+	peerIdLength := 20 // this is always a constant
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	result := ""
+	for i := 0; i < peerIdLength; i++ {
+		result += string(charset[rand.Intn(len(charset))])
+	}
+	t.PeerId = result
 }
 
 // buildInfoHash()
@@ -36,18 +63,11 @@ func (t *Torrent) buildInfoHash() {
 		log.Fatalln("Can't convert info hash into bytes")
 	}
 	hashValue := sha1.Sum(buffer.Bytes())
-	t.InfoHash = url.QueryEscape(string(hashValue[:]))
-}
+	t.InfoHash = string(hashValue[:])
 
-// ParseTorrent()
-// input is file descriptor and the output is bdecoded torrent struct
-func ParseTorrent(file io.Reader) Torrent {
-	var torrent Torrent
-	err := bencode.NewDecoder(file).Decode(&torrent)
-	if err != nil {
-		log.Fatalln(err)
-		log.Fatalln("Error parsing torrent file")
-	}
-	torrent.buildInfoHash()
-	return torrent
+	// param add method, while building the query parms escapes the string
+	// no need to do that here again
+
+	// commented out, see reason above
+	//t.InfoHash = url.QueryEscape(string(hashValue[:]))
 }
