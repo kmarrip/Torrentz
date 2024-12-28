@@ -2,10 +2,12 @@ package peer
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"reflect"
 
 	"github.com/kmarrip/torrentz/parse"
 )
@@ -16,7 +18,20 @@ import (
 // second send 8 reserved bytes which are always 0
 // thrid send the 20 byte hash_info of the info part of the torrent file
 // fourth send the 20 bytes self selected peerId that was selected first --> is this my peerId or other peer's ID ??
+func VerifyPeerHandshakeResponse( peerHandeshakeResponse []byte, peer Peer, t parse.Torrent) error{
+  prefixLength := peerHandeshakeResponse[:1][0]
+  if prefixLength != byte(19) {
+    return errors.New("Peer handshake reponse failed")
+  }
+  if string(peerHandeshakeResponse[1:20]) != "BitTorrent protocol"{
+    return errors.New("Peer handshake response failed, protocol doesn't match")
+  }
 
+  if reflect.DeepEqual([]byte(t.InfoHash), peerHandeshakeResponse[28:48]) == false {
+    return errors.New("Info hash from the peer didn't match")
+  } 
+  return nil
+}
 
 func Handshake(t parse.Torrent, peer Peer) {
 
@@ -39,13 +54,9 @@ func Handshake(t parse.Torrent, peer Peer) {
   _,err = conn.Write(buffer.Bytes())
   if err!= nil {
     log.Fatalln(err)
-  } 
-  for {
-
-    res,err := io.ReadAll(conn)
-    if err!= nil{
-      log.Fatalln(err)
-    }
-    log.Println(string(res))
   }
+  buff := make([]byte,68)
+  // the first response sent would be 
+  io.ReadFull(conn,buff)
+  VerifyPeerHandshakeResponse(buff,peer,t)
 }
