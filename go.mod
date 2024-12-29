@@ -3,6 +3,7 @@ module github.com/kmarrip/torrentz
 go 1.21.0
 
 require (
+	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/br0xen/termbox-util v0.0.0-20200220160819-dc6d6950ba00 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect

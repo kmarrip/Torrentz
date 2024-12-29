@@ -3,7 +3,10 @@ package peer
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"net"
+
+	"github.com/kmarrip/torrentz/config"
 )
 
 type Peer struct {
@@ -34,6 +37,8 @@ func (b *PeerMessage) New(response []byte) {
 //5.
 
 func SendNoPayloadPeerMessage(conn net.Conn, messageType int) {
+  // interested, not interested, choke and unchoke are no payload messages
+
 	var buff bytes.Buffer
 	messageLength := 1
 	binary.Write(&buff, binary.BigEndian, int32(messageLength))
@@ -58,4 +63,53 @@ func SendRequestPeerMessage(conn net.Conn, messageType int, blockLength int) {
 	binary.Write(&buff, binary.BigEndian, int32(0))
 	binary.Write(&buff, binary.BigEndian, int32(blockLength))
 	conn.Write(buff.Bytes())
+}
+
+func RecieveBitfieldOrHaveMessage(conn net.Conn) error{
+  // the first message after handshake is either bitfield or have 
+  
+  // 4-byte message length
+  // 1-byte message ID, message id is either config.bitfied or config.have 
+  // next messageLength - 1, buffer space is for actual message
+
+  messageLengthBuffer:= make([]byte,4)
+  conn.Read(messageLengthBuffer)
+  messageIdBuffer:= make([]byte,1)
+  conn.Read(messageIdBuffer)
+
+  messageLength := int32(binary.BigEndian.Uint32(messageLengthBuffer))
+  messageId := int8(messageIdBuffer[0])
+  
+  messageBuffer := make([]byte, messageLength - 1)
+  conn.Read(messageBuffer)
+
+  if messageId != config.Bitfield && messageId != config.Have{
+    return errors.New("Excpected bitfield or have message from peer")
+  }
+
+  return nil
+}
+
+func RecieveUnchokeMessage(conn net.Conn) error {
+  // The downloading client needs to wait for unchoke message 
+  
+  // 4-byte message length
+  // 1-byte messageId
+  // There should no payload for this message 
+  
+  messageLengthBuffer := make([]byte,4)
+  conn.Read(messageLengthBuffer)
+  messageIdBuffer := make([]byte,1)
+  conn.Read(messageIdBuffer)
+
+  messageLength := int32(binary.BigEndian.Uint32(messageLengthBuffer))
+  messageId := int8(messageIdBuffer[0])
+
+  if messageId != config.Unchoke {
+    return errors.New("Expected unchoke message from the peer")
+  }
+  if messageLength != 1 {
+    return errors.New("Expected message length for unchoke to be 1")
+  }
+  return nil
 }

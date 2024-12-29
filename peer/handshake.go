@@ -9,6 +9,7 @@ import (
 	"net"
 	"reflect"
 
+	"github.com/kmarrip/torrentz/config"
 	"github.com/kmarrip/torrentz/parse"
 )
 
@@ -34,14 +35,13 @@ func VerifyPeerHandshakeResponse(peerHandeshakeResponse []byte, peer Peer, t par
 }
 
 func Handshake(t parse.Torrent, peer Peer) (net.Conn, error) {
-	var buffer bytes.Buffer
 
+	var buffer bytes.Buffer
 	buffer.Write([]byte{19})
 	buffer.WriteString("BitTorrent protocol")
 	buffer.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0})
 	buffer.Write([]byte(t.InfoHash))
 	buffer.Write([]byte(t.PeerId))
-	log.Println(string(buffer.Bytes()))
 	var netDial string
 	if peer.IpAddress.To4() == nil {
 		// now the ip address is in ipv6 format
@@ -49,15 +49,18 @@ func Handshake(t parse.Torrent, peer Peer) (net.Conn, error) {
 	} else {
 		netDial = fmt.Sprintf("%s:%d", peer.IpAddress, peer.Port)
 	}
-	log.Println(netDial)
+
+  // TODO: this needs to be removed, just for debugging 
+  config.CopyToClipboard(peer.IpAddress.String())
 	conn, err := net.Dial("tcp", netDial)
 	if err != nil {
-		log.Println("connection to remote failed")
-		log.Fatal(err)
+		log.Println("connection to remote peer failed")
+    return nil, err
 	}
 	_, err = conn.Write(buffer.Bytes())
 	if err != nil {
-		log.Fatalln(err)
+    log.Println("write content to the tcp buffer failed")
+    return nil, err
 	}
 	buff := make([]byte, 68)
 	// the first response sent would be
