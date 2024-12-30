@@ -61,7 +61,7 @@ func (p *Newpeer) Handshake() (net.Conn, error) {
 		return nil, err
 	}
 	buff := make([]byte, 68)
-	// the first response sent would be
+	// the first response sent would be 
 	conn.Read(buff)
 	err = p.VerifyPeerHandshakeResponse(buff)
 	if err != nil {

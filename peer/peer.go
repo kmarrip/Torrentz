@@ -2,13 +2,9 @@ package peer
 
 import (
 	"bytes"
-	"crypto/sha1"
 	"encoding/binary"
-	"errors"
-	"fmt"
 	"log"
 	"net"
-	"reflect"
 	"sync"
 	"time"
 
@@ -28,6 +24,7 @@ type Newpeer struct {
 	Port             int32
 	PeerId           string
 	Conn             net.Conn
+  Mu               sync.Mutex
 	BlockLength      uint32
 	BlockIndex       uint32
 	PeerIndex        uint32
@@ -48,13 +45,15 @@ func (p *Newpeer) New(t parse.Torrent, rIp net.IP, peerIndex uint32, port int32)
 	p.Torrent = t
 	p.RemoteIp = rIp
 	p.PeerIndex = peerIndex
-	p.BlockLength = uint32(2 << 13)
+	p.BlockLength = uint32(1 << 14)
 	p.BlockIndex = uint32(0)
 	p.Choke = true
 	p.Port = port
 	p.PingTimeInterval = 400
 }
-
+func (p *Newpeer) ResetPingTimeInterval(){
+  p.PingTimeInterval = 400
+}
 func (p *Newpeer) Download(wg *sync.WaitGroup) {
 	defer wg.Done()
 	log.Println("peer handshake")
@@ -80,27 +79,14 @@ func (p *Newpeer) Download(wg *sync.WaitGroup) {
 	log.Println("Sending unchoke message to peer")
 	p.SendNoPayloadPeerMessage(config.Unchoke)
 
-	// Wait until you receive an unchoke message
-	// you can't request for pieces until the remote has unchoked you
-	//TODO: this can be written better, the connection starts out as choked
-	// remove this and it should still work fine
-	p.processPeerMessage()
-	log.Println("Got unchoke back")
-
+	
 	go p.PingForPieces()
 
-	for {
-		//TODO: check if the buffer has reached its limit
-		if len(p.Data.Bytes()) == int(p.Torrent.Info.PieceLength) {
-			// we have the entire Piece break now
-			break
-		}
+	for {	
 		p.processPeerMessage()
 	}
-	if sha1.Sum(p.Data.Bytes()) == [20]byte(p.Torrent.PieceHashes[p.PeerIndex]) {
-		log.Println("Piece Downloaded successfully")
-	}
-	p.Close()
+
+	//p.Close()
 }
 
 func (p *Newpeer) Close() {
@@ -120,11 +106,32 @@ func (p *Newpeer) PingForPieces() {
 		if p.Choke == true {
 			log.Println("Currently choked, can't send request messages further")
 			p.PingTimeInterval *= 1.1
-			log.Printf("Extending time interval by 10 percent, new interval %f\n", p.PingTimeInterval)
+      log.Println("Timer increase by 10 percent now")
 			continue
 		}
 		p.SendRequestPeerMessage()
 	}
+}
+
+func (p *Newpeer) SendRequestPeerMessage() {
+	log.Println("Sending request message to peer")
+	// block is made of pieces
+
+	// 4-byte message length
+	// 1-byte message ID
+	// payload
+	// 4-byte piece index
+	// 4-byte block offset
+	// 4-byte block length
+	var buff bytes.Buffer
+	messageLength := 13
+	binary.Write(&buff, binary.BigEndian, int32(messageLength))
+	buff.Write([]byte{6})
+	binary.Write(&buff, binary.BigEndian, p.PeerIndex)
+	binary.Write(&buff, binary.BigEndian, p.BlockIndex)
+	binary.Write(&buff, binary.BigEndian, p.BlockLength)
+  
+	p.Conn.Write(buff.Bytes())
 }
 
 func (p *Newpeer) AddBlock(buff []byte) {
