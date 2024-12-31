@@ -76,13 +76,13 @@ func (t *Torrent) buildInfoHash() {
 func (t *Torrent) buildPieceHashes() {
 	// sha1 is of constant length of 20 bytes
 	// each peer index would have a hash of the corresponding piece
-  numberOfPieces := len(t.Info.Pieces) / 20
+	numberOfPieces := len(t.Info.Pieces) / 20
 	t.PieceHashes = make([][]byte, numberOfPieces)
 	for i := range t.PieceHashes {
 		t.PieceHashes[i] = make([]byte, 20)
 	}
 
-  for index := range t.PieceHashes{
+	for index := range t.PieceHashes {
 		t.PieceHashes[index] = t.Info.Pieces[20*index : 20*(index+1)]
 	}
 }
