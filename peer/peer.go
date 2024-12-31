@@ -24,22 +24,25 @@ type Newpeer struct {
 	Port             int32
 	PeerId           string
 	Conn             net.Conn
-  Mu               sync.Mutex
 	BlockLength      uint32
 	BlockIndex       uint32
 	PeerIndex        uint32
 	Choke            bool
 	Bitfield         []byte
-	Data             bytes.Buffer
-	PieceHash        []byte
-	PingTimeInterval float32
+	Data             []byte 
+  PingTimeInterval float32
 }
 
 //connection to a peer happens in this way
+// byte offsets and indices are precalcluated
+
 //1. Handshake, client(this code) talks to a peer via handshake messages. if the handshake is successful then move on
 //2. Bitfield, this message is sent by the upstream peer (this is optional)
 //3. Wait for unchoke message from the peer
 //4. Send interested message to the peer
+//5. Send unchoke message to the peer, This is not mandatory but internet recommended 
+//6. Start a new go routine, which pings requestPeerMessage
+//7. Process messages as they come by  
 
 func (p *Newpeer) New(t parse.Torrent, rIp net.IP, peerIndex uint32, port int32) {
 	p.Torrent = t
@@ -49,21 +52,18 @@ func (p *Newpeer) New(t parse.Torrent, rIp net.IP, peerIndex uint32, port int32)
 	p.BlockIndex = uint32(0)
 	p.Choke = true
 	p.Port = port
-	p.PingTimeInterval = 400
 }
-func (p *Newpeer) ResetPingTimeInterval(){
-  p.PingTimeInterval = 400
-}
+
 func (p *Newpeer) Download(wg *sync.WaitGroup) {
 	defer wg.Done()
 	log.Println("peer handshake")
 	conn, err := p.Handshake()
-	log.Println("peer handshake done")
-	p.Conn = conn
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	log.Println("peer handshake done")
+	p.Conn = conn
 
 	// the first peer message should be either Bitfield or have
 	// TODO: support have peer message --> not pressing
@@ -79,14 +79,19 @@ func (p *Newpeer) Download(wg *sync.WaitGroup) {
 	log.Println("Sending unchoke message to peer")
 	p.SendNoPayloadPeerMessage(config.Unchoke)
 
-	
-	go p.PingForPieces()
+  //wait for unchoke from server
+  log.Println("Waiting for Unchoke message from remote peer")
+  p.processPeerMessage()
 
-	for {	
+  go p.PingForPieces()
+
+	for {
 		p.processPeerMessage()
 	}
+}
 
-	//p.Close()
+func (p *Newpeer) ResetPingTimeInterval(){
+  p.PingTimeInterval = 400
 }
 
 func (p *Newpeer) Close() {
@@ -94,20 +99,12 @@ func (p *Newpeer) Close() {
 }
 
 func (p *Newpeer) PingForPieces() {
-	// wait for 100 milli seconds
-	// check if the piece is fully downloaded, if yes exit
-	// if not send a request message for the next buffer index
 	for {
-		log.Printf("%v current choke \n", p.Choke)
-		time.Sleep(time.Duration(p.PingTimeInterval) * time.Millisecond)
-		if len(p.Data.Bytes()) == int(p.Torrent.Info.PieceLength) {
-			return
-		}
+    time.Sleep(time.Duration(p.PingTimeInterval)* time.Millisecond)
 		if p.Choke == true {
-			log.Println("Currently choked, can't send request messages further")
-			p.PingTimeInterval *= 1.1
-      log.Println("Timer increase by 10 percent now")
-			continue
+      // ping time increases by 10% everytime, this is reset after an unchoke or piece message
+      p.PingTimeInterval*= 1.1
+      continue
 		}
 		p.SendRequestPeerMessage()
 	}
@@ -130,7 +127,7 @@ func (p *Newpeer) SendRequestPeerMessage() {
 	binary.Write(&buff, binary.BigEndian, p.PeerIndex)
 	binary.Write(&buff, binary.BigEndian, p.BlockIndex)
 	binary.Write(&buff, binary.BigEndian, p.BlockLength)
-  
+
 	p.Conn.Write(buff.Bytes())
 }
 

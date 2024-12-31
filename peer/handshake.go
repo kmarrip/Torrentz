@@ -50,7 +50,7 @@ func (p *Newpeer) Handshake() (net.Conn, error) {
 
 	// TODO: this needs to be removed, just for debugging
 	config.CopyToClipboard(p.RemoteIp.String())
-	conn, err := net.DialTimeout("tcp", netDial, 2*time.Second)
+	conn, err := net.DialTimeout("tcp", netDial, 500*time.Millisecond)
 	if err != nil {
 		log.Println("connection to remote peer failed")
 		return nil, err
@@ -61,7 +61,7 @@ func (p *Newpeer) Handshake() (net.Conn, error) {
 		return nil, err
 	}
 	buff := make([]byte, 68)
-	// the first response sent would be 
+	// the first response sent would be
 	conn.Read(buff)
 	err = p.VerifyPeerHandshakeResponse(buff)
 	if err != nil {
