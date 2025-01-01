@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"reflect"
 	"time"
@@ -52,12 +51,12 @@ func (p *Newpeer) Handshake() (net.Conn, error) {
 	config.CopyToClipboard(p.RemoteIp.String())
 	conn, err := net.DialTimeout("tcp", netDial, 2*time.Second)
 	if err != nil {
-		log.Println("connection to remote peer failed")
+		//log.Println("connection to remote peer failed")
 		return nil, err
 	}
 	_, err = conn.Write(buffer.Bytes())
 	if err != nil {
-		log.Println("write content to the tcp buffer failed")
+		//log.Println("write content to the tcp buffer failed")
 		return nil, err
 	}
 	buff := make([]byte, 68)
@@ -65,7 +64,7 @@ func (p *Newpeer) Handshake() (net.Conn, error) {
 	conn.Read(buff)
 	err = p.VerifyPeerHandshakeResponse(buff)
 	if err != nil {
-		log.Println("Peer handshake response failed, closing connection")
+		//log.Println("Peer handshake response failed, closing connection")
 		return nil, err
 	}
 	return conn, nil

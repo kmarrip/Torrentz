@@ -3,6 +3,7 @@ package tracker
 import (
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -37,6 +38,26 @@ func BuildTrackerUrl(t parse.Torrent) string {
 	return parsedUrl.String()
 }
 
+func GetNetworkAddress(announceUrl string) string{
+  parsedUrl, err := url.Parse(announceUrl)
+  if err!=nil{
+    log.Fatal(err)
+  }
+  netUrl := parsedUrl.Host + parsedUrl.Path
+	if parsedUrl.RawQuery != "" {
+		netUrl += parsedUrl.RawQuery
+	}
+  return netUrl 
+}
+func udpAnnouncer(announceUrl string) []peer.Peer {
+  log.Println(GetNetworkAddress(announceUrl))
+  _, err := net.Dial("udp",GetNetworkAddress(announceUrl))
+  if err!= nil {
+    log.Fatal(err)
+  }
+  return nil  
+}
+
 func httpAnnoucer(annouceUrl string) []peer.Peer {
 	resp, err := http.Get(annouceUrl)
 	if err != nil {
@@ -55,11 +76,7 @@ func GetPeers(announceUrl string) []peer.Peer {
 	if err != nil {
 		log.Fatal(err)
 	}
-	schema := parsedUrl.Scheme
-	netUrl := parsedUrl.Host + parsedUrl.Path
-	if parsedUrl.RawQuery != "" {
-		netUrl += parsedUrl.RawQuery
-	}
+	schema := parsedUrl.Scheme	
 
 	// TODO: the schema could be https/http/tcp/udp
 	// Need to support all the schemas

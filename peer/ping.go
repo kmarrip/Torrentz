@@ -3,7 +3,6 @@ package peer
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
 	"sync"
 	"time"
 )
@@ -55,7 +54,6 @@ func (p *Newpeer) SendRequestPeerMessage() {
 		}
 	}
 	if needToPing == false {
-		log.Printf("All pieces have been collected")
 		return
 	}
 	// 4-byte message length

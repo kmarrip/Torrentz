@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"io"
-	"log"
 
 	"github.com/kmarrip/torrentz/config"
 )
@@ -16,7 +15,7 @@ func (p *Newpeer) processPeerMessage() {
 	messageLength := binary.BigEndian.Uint32(messageLengthBuffer)
 
 	if messageLength == 0 {
-		log.Printf("KeepAlive bittorrent message received")
+		//log.Printf("KeepAlive bittorrent message received")
 		return
 	}
 
@@ -33,7 +32,7 @@ func (p *Newpeer) processPeerMessage() {
 			p.Choke = false
 			p.ResetPingTimeInterval()
 		default:
-			log.Printf("MessageId received %d, interested and not interested not supported yet\n", messageId)
+			//log.Printf("MessageId received %d, interested and not interested not supported yet\n", messageId)
 		}
 
 		return
@@ -47,7 +46,7 @@ func (p *Newpeer) processPeerMessage() {
 	case config.Piece:
 		p.AddBlock(messageBuffer)
 	default:
-		log.Printf("MessageId %d, The remote peer sent something thats not implemented/supported \n", messageId)
+		//log.Printf("MessageId %d, The remote peer sent something thats not implemented/supported \n", messageId)
 	}
 }
 

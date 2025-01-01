@@ -46,13 +46,13 @@ func worker(jobs chan int, torrent parse.Torrent, peers []peer.Peer) {
 	for job := range jobs {
 		newPeer := peer.Newpeer{}
 		// get a random peer and see if the piece can be downloaded
-    log.Printf("Picking up %d piece index\n", job)
+    //log.Printf("Picking up %d piece index\n", job)
 		remotePeer := peers[rand.Intn(len(peers))]
 		newPeer.New(torrent, remotePeer.IpAddress, int32(remotePeer.Port), uint32(job))
     err := newPeer.Download()
     if err != nil {
       // download failed re-enque the job
-      log.Printf("%d piece index job failed, redoing it\n",job)
+      //log.Printf("%d piece index job failed, redoing it\n",job)
       jobs <- job
     }
 	}

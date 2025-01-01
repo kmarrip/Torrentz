@@ -3,7 +3,6 @@ package peer
 import (
 	"encoding/binary"
 	"errors"
-	"log"
 	"net"
 
 	"github.com/kmarrip/torrentz/config"
@@ -72,20 +71,20 @@ func (p *Newpeer) New(t parse.Torrent, rIp net.IP, port int32, peerIndex uint32)
 }
 
 func (p *Newpeer) Download() error {
-	log.Println("peer handshake")
+	//log.Println("peer handshake")
 	conn, err := p.Handshake()
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 		return err
 	}
-	log.Println("peer handshake done")
+	//log.Println("peer handshake done")
 	p.Conn = conn
 	defer p.Conn.Close()
 
 	// the first peer message should be either Bitfield or have
 	// TODO: support have peer message --> not pressing
 	p.processPeerMessage()
-	log.Println("Received have or Bitfield message")
+	//log.Println("Received have or Bitfield message")
 
 	// check if the remote peer has the piece you are interested in
 	if !p.CheckForPieceInRemote() {
@@ -93,15 +92,15 @@ func (p *Newpeer) Download() error {
 	}
 
 	// Sending interested message, now that peer has the piece
-	log.Println("Sending interested message")
+	//log.Println("Sending interested message")
 	p.SendNoPayloadPeerMessage(config.Interested)
 
 	// Unchoke the peer, so peer can download pieces from you
-	log.Println("Sending unchoke message to peer")
+	//log.Println("Sending unchoke message to peer")
 	p.SendNoPayloadPeerMessage(config.Unchoke)
 
 	//wait for unchoke from server
-	log.Println("Waiting for Unchoke message from remote peer")
+	//log.Println("Waiting for Unchoke message from remote peer")
 	p.processPeerMessage()
 
 	go p.PingForPieces()

@@ -24,9 +24,6 @@ func (p *Newpeer) CheckIfPieceDone() bool {
 func (p *Newpeer) VerifyHashIntegrity() bool {
 	givenHash := fmt.Sprintf("%x", p.Torrent.PieceHashes[p.PeerIndex])
 	calculatedHash := fmt.Sprintf("%x", sha1.Sum(p.Data))
-	log.Printf("given Hash %s\n", givenHash)
-	log.Printf("calculated hash %s\n", calculatedHash)
-
 	return givenHash == calculatedHash
 }
 
@@ -39,7 +36,7 @@ func (p *Newpeer) PrintProgress() {
 	for i := range p.ping.BlockIndex {
 		done += p.ping.Get(i)
 	}
-	log.Printf("%d/%d blocks done\n", done, len(p.ping.BlockIndex))
+  log.Printf("piece index:%d, %d/%d blocks done\n",p.PeerIndex, done, len(p.ping.BlockIndex))
 }
 
 func (p *Newpeer) CheckForPieceInRemote() bool {

@@ -13,4 +13,4 @@ const (
 )
 
 const BlockLength uint32 = 1 << 14
-const MaxWorkers = 2
+const MaxWorkers = 10
