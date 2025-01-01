@@ -2,6 +2,7 @@ package peer
 
 import (
 	"encoding/binary"
+	"errors"
 	"log"
 	"net"
 
@@ -54,7 +55,7 @@ func (p *Newpeer) New(t parse.Torrent, rIp net.IP, port int32, peerIndex uint32)
 	p.Choke = true
 	p.Port = port
 	p.Data = make([]byte, t.Info.PieceLength)
-  p.Bitfield = make([]byte,len(t.PieceHashes))
+	p.Bitfield = make([]byte, len(t.PieceHashes))
 	p.ping.BlockIndex = make(map[OffsetLengthPiece]int)
 
 	for b := 0; b < int(p.Torrent.Info.PieceLength)/int(p.BlockLength); b++ {
@@ -70,16 +71,16 @@ func (p *Newpeer) New(t parse.Torrent, rIp net.IP, port int32, peerIndex uint32)
 	}
 }
 
-func (p *Newpeer) Download() {
+func (p *Newpeer) Download() error {
 	log.Println("peer handshake")
 	conn, err := p.Handshake()
 	if err != nil {
 		log.Println(err)
-		return
+		return err
 	}
 	log.Println("peer handshake done")
 	p.Conn = conn
-  defer p.Conn.Close()
+	defer p.Conn.Close()
 
 	// the first peer message should be either Bitfield or have
 	// TODO: support have peer message --> not pressing
@@ -87,9 +88,8 @@ func (p *Newpeer) Download() {
 	log.Println("Received have or Bitfield message")
 
 	// check if the remote peer has the piece you are interested in
-	if !p.CheckForPieceInRemote(){
-		log.Printf("Remote doesn't have the piece ")
-		return
+	if !p.CheckForPieceInRemote() {
+		return errors.New("Remote doesn't have the piece")
 	}
 
 	// Sending interested message, now that peer has the piece
@@ -107,9 +107,9 @@ func (p *Newpeer) Download() {
 	go p.PingForPieces()
 
 	for {
-		if p.VerifyHashIntegrity(){
+		if p.VerifyHashIntegrity() {
 			p.WritePiece()
-			return
+			return nil
 		}
 		p.processPeerMessage()
 	}

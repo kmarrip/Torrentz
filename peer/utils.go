@@ -8,7 +8,7 @@ import (
 )
 
 func (p *Newpeer) WritePiece() {
-  writeToFile := fmt.Sprintf("./%s/%x", p.Torrent.Info.Name, sha1.Sum(p.Data))
+	writeToFile := fmt.Sprintf("./%s/%x", p.Torrent.Info.Name, sha1.Sum(p.Data))
 	os.WriteFile(writeToFile, p.Data, 0644)
 }
 
