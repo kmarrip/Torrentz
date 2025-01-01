@@ -13,7 +13,7 @@ func (p *Newpeer) WritePiece() {
 }
 
 func (p *Newpeer) CheckIfPieceDone() bool {
-	for i := range p.ping.BlockIndex {
+	for _,i := range p.ping.Range() {
 		if p.ping.Get(i) == 0 {
 			return false
 		}
@@ -33,10 +33,10 @@ func (p *Newpeer) ResetPingTimeInterval() {
 
 func (p *Newpeer) PrintProgress() {
 	done := 0
-	for i := range p.ping.BlockIndex {
+	for _,i := range p.ping.Range(){
 		done += p.ping.Get(i)
 	}
-  log.Printf("piece index:%d, %d/%d blocks done\n",p.PeerIndex, done, len(p.ping.BlockIndex))
+	log.Printf("piece index:%d, %d/%d blocks done\n", p.PeerIndex, done, len(p.ping.BlockIndex))
 }
 
 func (p *Newpeer) CheckForPieceInRemote() bool {

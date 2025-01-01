@@ -55,7 +55,10 @@ func (p *Newpeer) New(t parse.Torrent, rIp net.IP, port int32, peerIndex uint32)
 	p.Port = port
 	p.Data = make([]byte, t.Info.PieceLength)
 	p.Bitfield = make([]byte, len(t.PieceHashes))
-	p.ping.BlockIndex = make(map[OffsetLengthPiece]int)
+
+  p.ping = pingMap{
+    BlockIndex: make(map[OffsetLengthPiece]int),
+  }
 
 	for b := 0; b < int(p.Torrent.Info.PieceLength)/int(p.BlockLength); b++ {
 		key := OffsetLengthPiece{Offset: uint32(b) * uint32(p.BlockLength), Length: p.BlockLength}
