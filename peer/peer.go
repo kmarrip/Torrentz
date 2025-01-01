@@ -132,5 +132,4 @@ func (p *Newpeer) AddBlock(buff []byte) {
 	temp = append(temp, p.Data[blockIndex+len(dataBuffer):]...)
 	p.Data = temp
 	p.ping.Set(OffsetLengthPiece{Offset: uint32(blockIndex), Length: uint32(len(dataBuffer))}, 1)
-	p.PrintProgress()
 }

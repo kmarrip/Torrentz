@@ -3,7 +3,6 @@ package peer
 import (
 	"crypto/sha1"
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -29,14 +28,6 @@ func (p *Newpeer) VerifyHashIntegrity() bool {
 
 func (p *Newpeer) ResetPingTimeInterval() {
 	p.PingTimeInterval = 400
-}
-
-func (p *Newpeer) PrintProgress() {
-	done := 0
-	for _,i := range p.ping.Range(){
-		done += p.ping.Get(i)
-	}
-	log.Printf("piece index:%d, %d/%d blocks done\n", p.PeerIndex, done, len(p.ping.BlockIndex))
 }
 
 func (p *Newpeer) CheckForPieceInRemote() bool {

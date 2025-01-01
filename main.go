@@ -55,6 +55,10 @@ func worker(jobs chan int, torrent parse.Torrent, peers []peer.Peer) {
 			// download failed re-enque the job
 			//log.Printf("%d piece index job failed, redoing it\n",job)
 			jobs <- job
+      continue
 		}
+    pendingJobs := len(jobs)
+    totalJobs := len(torrent.PieceHashes)
+    log.Printf("Progress %d/%d pieces\n",totalJobs - pendingJobs, totalJobs)
 	}
 }
