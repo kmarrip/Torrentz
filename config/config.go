@@ -11,3 +11,5 @@ const (
 	Piece
 	Cancel
 )
+
+const BlockLength uint32 = 1 << 14

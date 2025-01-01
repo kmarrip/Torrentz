@@ -2,8 +2,8 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"os"
-	"sync"
 
 	"github.com/kmarrip/torrentz/parse"
 	"github.com/kmarrip/torrentz/peer"
@@ -22,15 +22,14 @@ func main() {
 	peers := tracker.GetPeers(tracker.BuildTrackerUrl(torrent))
 	log.Printf("Total peers found %d\n", len(peers))
 
-	totalGoThreads := 1
-	var wg sync.WaitGroup
+  // this is where the files will be downloaded
+  os.Mkdir(torrent.Info.Name, 0755)
 
-	for i := 0; i < totalGoThreads; i++ {
-		newPeer := peer.Newpeer{}
-		newPeer.New(torrent, peers[i].IpAddress, 0, int32(peers[i].Port))
-		wg.Add(1)
-		go newPeer.Download(&wg)
-	}
-	wg.Wait()
+	newPeer := peer.Newpeer{}
+
+	// get a random peer and see if the piece can be downloaded
+	remotePeer := peers[rand.Intn(len(peers))]
+	newPeer.New(torrent, remotePeer.IpAddress, int32(remotePeer.Port),0)
+	newPeer.Download()
 	log.Println("Done")
 }

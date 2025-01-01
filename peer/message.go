@@ -15,7 +15,6 @@ func (p *Newpeer) processPeerMessage() {
 	io.ReadFull(p.Conn, messageLengthBuffer)
 	messageLength := binary.BigEndian.Uint32(messageLengthBuffer)
 
-	log.Printf("Message buffer length %d\n", messageLength)
 	if messageLength == 0 {
 		log.Printf("KeepAlive bittorrent message received")
 		return
