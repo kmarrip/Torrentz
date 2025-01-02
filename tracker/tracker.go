@@ -3,7 +3,6 @@ package tracker
 import (
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -49,14 +48,6 @@ func GetNetworkAddress(announceUrl string) string {
 	}
 	return netUrl
 }
-func udpAnnouncer(announceUrl string) []peer.Peer {
-	log.Println(GetNetworkAddress(announceUrl))
-	_, err := net.Dial("udp", GetNetworkAddress(announceUrl))
-	if err != nil {
-		log.Fatal(err)
-	}
-	return nil
-}
 
 func httpAnnoucer(annouceUrl string) []peer.Peer {
 	resp, err := http.Get(annouceUrl)
@@ -71,7 +62,8 @@ func httpAnnoucer(annouceUrl string) []peer.Peer {
 	return response.Peers
 }
 
-func GetPeers(announceUrl string) []peer.Peer {
+func GetPeers(t parse.Torrent) []peer.Peer {
+	announceUrl := BuildTrackerUrl(t)
 	parsedUrl, err := url.Parse(announceUrl)
 	if err != nil {
 		log.Fatal(err)
@@ -86,6 +78,8 @@ func GetPeers(announceUrl string) []peer.Peer {
 		return httpAnnoucer(announceUrl)
 	case "http":
 		return httpAnnoucer(announceUrl)
+	case "udp":
+		return udpAnnouncer(t)
 	default:
 		return httpAnnoucer(announceUrl)
 	}

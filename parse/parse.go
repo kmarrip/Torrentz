@@ -5,8 +5,8 @@ import (
 	"crypto/sha1"
 	"io"
 	"log"
-	"math/rand"
 
+	"github.com/kmarrip/torrentz/config"
 	"github.com/zeebo/bencode"
 )
 
@@ -44,13 +44,7 @@ func ParseTorrent(file io.Reader) Torrent {
 // buildPeerId()
 // builds a random 20 byte string
 func (t *Torrent) buildPeerId() {
-	peerIdLength := 20 // this is always a constant
-	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	result := ""
-	for i := 0; i < peerIdLength; i++ {
-		result += string(charset[rand.Intn(len(charset))])
-	}
-	t.PeerId = result
+	t.PeerId = config.Generate20ByteRandomString()
 }
 
 // buildInfoHash()

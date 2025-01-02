@@ -12,7 +12,7 @@ func (p *Newpeer) WritePiece() {
 }
 
 func (p *Newpeer) CheckIfPieceDone() bool {
-	for _,i := range p.ping.Range() {
+	for _, i := range p.ping.Range() {
 		if p.ping.Get(i) == 0 {
 			return false
 		}

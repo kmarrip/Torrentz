@@ -14,3 +14,4 @@ const (
 
 const BlockLength uint32 = 1 << 14
 const MaxWorkers = 10
+const UdpLocalPort = "54321"

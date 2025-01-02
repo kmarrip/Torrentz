@@ -20,7 +20,10 @@ func main() {
 	defer fd.Close()
 
 	torrent := parse.ParseTorrent(fd)
-	peers := tracker.GetPeers(tracker.BuildTrackerUrl(torrent))
+	log.Println(torrent.Announce)
+	peers := tracker.GetPeers(torrent)
+	log.Println(peers)
+	os.Exit(0)
 	log.Printf("Total peers found %d\n", len(peers))
 	log.Printf("Total pieces %d\n", len(torrent.PieceHashes))
 
@@ -55,10 +58,10 @@ func worker(jobs chan int, torrent parse.Torrent, peers []peer.Peer) {
 			// download failed re-enque the job
 			//log.Printf("%d piece index job failed, redoing it\n",job)
 			jobs <- job
-      continue
+			continue
 		}
-    pendingJobs := len(jobs)
-    totalJobs := len(torrent.PieceHashes)
-    log.Printf("Progress %d/%d pieces\n",totalJobs - pendingJobs, totalJobs)
+		pendingJobs := len(jobs)
+		totalJobs := len(torrent.PieceHashes)
+		log.Printf("Progress %d/%d pieces\n", totalJobs-pendingJobs, totalJobs)
 	}
 }
