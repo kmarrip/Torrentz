@@ -3,6 +3,7 @@ package peer
 import (
 	"bytes"
 	"encoding/binary"
+	"log"
 	"sync"
 	"time"
 )
@@ -46,26 +47,30 @@ func (p *Newpeer) PingForPieces() {
 			p.PingTimeInterval *= 1.1
 			continue
 		}
-		p.SendRequestPeerMessage()
+
+		var key OffsetLengthPiece
+		needToPing := false
+
+		for _, i := range p.ping.Range() {
+			if p.ping.Get(i) == 0 {
+				key.Offset = i.Offset
+				key.Length = i.Length
+				needToPing = true
+				break
+			}
+		}
+		if !needToPing {
+			log.Println("nothing to ping")
+			return
+		}
+		p.SendRequestPeerMessage(key)
+
 	}
 }
 
-func (p *Newpeer) SendRequestPeerMessage() {
+func (p *Newpeer) SendRequestPeerMessage(key OffsetLengthPiece) {
 	// block is made of pieces
-	var key OffsetLengthPiece
-	needToPing := false
 
-	for _, i := range p.ping.Range() {
-		if p.ping.Get(i) == 0 {
-			key.Offset = i.Offset
-			key.Length = i.Length
-			needToPing = true
-			break
-		}
-	}
-	if needToPing == false {
-		return
-	}
 	// 4-byte message length
 	// 1-byte message ID
 	// payload
@@ -76,7 +81,7 @@ func (p *Newpeer) SendRequestPeerMessage() {
 	messageLength := 13
 	binary.Write(&buff, binary.BigEndian, int32(messageLength))
 	buff.Write([]byte{6})
-	binary.Write(&buff, binary.BigEndian, p.PeerIndex)
+	binary.Write(&buff, binary.BigEndian, p.PieceIndex)
 	binary.Write(&buff, binary.BigEndian, key.Offset)
 	binary.Write(&buff, binary.BigEndian, key.Length)
 

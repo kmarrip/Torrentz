@@ -33,7 +33,7 @@ func getPeerFrom6bytes(buff []byte) peer.Peer {
 	}
 	ipAddress := net.IP(buff[:4])
 	port := binary.BigEndian.Uint16(buff[4:])
-	return peer.Peer{IpAddress: ipAddress, Port: int64(port), PeerId: config.Generate20ByteRandomString()}
+	return peer.Peer{IpAddress: ipAddress, Port: int64(port)}
 }
 
 func processAnnounceResponse(conn *net.UDPConn) []peer.Peer {
@@ -142,14 +142,13 @@ func udpAnnouncer(t parse.Torrent) []peer.Peer {
 	}
 	defer conn.Close()
 
-
-  // TODO
-  // There is no retry mechanism, if the server fails to respond
-  // the next read blocks
+	// TODO
+	// There is no retry mechanism, if the server fails to respond
+	// the next read blocks
 
 	sendUdpHandshake(conn)
 	connectionId := processConnectResponse(conn)
 	sendUdpRequest(conn, int(connectionId), []byte(t.InfoHash), []byte(t.PeerId))
-  peersList := processAnnounceResponse(conn)
+	peersList := processAnnounceResponse(conn)
 	return peersList
 }

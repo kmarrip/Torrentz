@@ -1,8 +1,10 @@
 package peer
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
+	"log"
 	"net"
 
 	"github.com/kmarrip/torrentz/config"
@@ -10,7 +12,7 @@ import (
 )
 
 type Peer struct {
-	PeerId    string `bencode:"peer id"`
+	//PeerId    string `bencode:"peer id"`
 	Port      int64  `bencode:"port,omitEmpty"`
 	IpAddress net.IP `bencode:"ip"`
 }
@@ -26,7 +28,7 @@ type Newpeer struct {
 	Port             int32
 	Conn             net.Conn
 	BlockLength      uint32
-	PeerIndex        uint32
+	PieceIndex        uint32
 	Choke            bool
 	Bitfield         []byte
 	Data             []byte
@@ -46,39 +48,62 @@ type Newpeer struct {
 //6. Start a new go routine, which pings requestPeerMessage
 //7. Process messages as they come by
 
-func (p *Newpeer) New(t parse.Torrent, rIp net.IP, port int32, peerIndex uint32) {
+func (p *Newpeer) New(t parse.Torrent, rIp net.IP, port int32, pieceIndex uint32) {
 	p.Torrent = t
 	p.RemoteIp = rIp
-	p.PeerIndex = peerIndex
-	p.BlockLength = config.BlockLength
+	p.PieceIndex =  pieceIndex
+ 	p.BlockLength = config.BlockLength
 	p.Choke = true
-	p.Port = port
-	p.Data = make([]byte, t.Info.PieceLength)
+	p.PingTimeInterval = 400
 	p.Bitfield = make([]byte, len(t.PieceHashes))
+	p.Port = port
+
+  sizeOfThisPiece := p.Torrent.Info.Length - (int64(pieceIndex) * p.Torrent.Info.PieceLength)
+	p.Data = make([]byte, sizeOfThisPiece)
 
 	p.ping = pingMap{
 		BlockIndex: make(map[OffsetLengthPiece]int),
 	}
-
-	for b := 0; b < int(p.Torrent.Info.PieceLength)/int(p.BlockLength); b++ {
+  log.Println(sizeOfThisPiece)
+  log.Println(p.BlockLength)
+  numberOfBlocks := sizeOfThisPiece / int64(p.BlockLength)
+  log.Printf("%v number of blocks in this piece\n",sizeOfThisPiece /int64(p.BlockLength))
+  log.Println(sizeOfThisPiece % int64(p.BlockLength))
+	for b := 0; b < int(numberOfBlocks); b++ {
 		key := OffsetLengthPiece{Offset: uint32(b) * uint32(p.BlockLength), Length: p.BlockLength}
 		p.ping.Set(key, 0)
 	}
 
-	if p.Torrent.Info.PieceLength%int64(p.BlockLength) != 0 {
+	if sizeOfThisPiece % int64(p.BlockLength) != 0 {
 		var key OffsetLengthPiece
-		key.Offset = uint32(int(p.Torrent.Info.PieceLength) / int(p.BlockLength))
-		key.Length = uint32(p.Torrent.Info.PieceLength % int64(p.BlockLength))
+		key.Offset = uint32(numberOfBlocks) * p.BlockLength
+    key.Length = uint32(sizeOfThisPiece) % p.BlockLength 
 		p.ping.Set(key, 0)
 	}
 }
 
-func (p *Newpeer) Download() error {
-	//log.Println("peer handshake")
+func (p *Newpeer) DownloadWithTimeout(ctx context.Context) error {
+  routineChannel := make(chan int)
+  go p.Download(routineChannel)
+  for {
+    select {
+		case <-ctx.Done():
+			return errors.New("Remote peer timeout")
+    case val:=<-routineChannel:
+      if val == 0{
+        return nil
+      }else {
+        return errors.New("Remote connection failed")
+      }
+		}
+	}
+}
+
+func (p *Newpeer) Download(routineChannel chan int)  {
 	conn, err := p.Handshake()
 	if err != nil {
-		//log.Println(err)
-		return err
+    routineChannel <- 1
+		return
 	}
 	//log.Println("peer handshake done")
 	p.Conn = conn
@@ -91,7 +116,9 @@ func (p *Newpeer) Download() error {
 
 	// check if the remote peer has the piece you are interested in
 	if !p.CheckForPieceInRemote() {
-		return errors.New("Remote doesn't have the piece")
+    routineChannel <- 1
+    return
+		// return errors.New("Remote doesn't have the piece")
 	}
 
 	// Sending interested message, now that peer has the piece
@@ -111,10 +138,11 @@ func (p *Newpeer) Download() error {
 	for {
 		if p.VerifyHashIntegrity() {
 			p.WritePiece()
-			return nil
-		}
+		  break
+    }
 		p.processPeerMessage()
 	}
+  routineChannel <- 0
 }
 
 func (p *Newpeer) AddBlock(buff []byte) {

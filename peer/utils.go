@@ -3,6 +3,7 @@ package peer
 import (
 	"crypto/sha1"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -21,8 +22,10 @@ func (p *Newpeer) CheckIfPieceDone() bool {
 }
 
 func (p *Newpeer) VerifyHashIntegrity() bool {
-	givenHash := fmt.Sprintf("%x", p.Torrent.PieceHashes[p.PeerIndex])
+	givenHash := fmt.Sprintf("%x", p.Torrent.PieceHashes[p.PieceIndex])
 	calculatedHash := fmt.Sprintf("%x", sha1.Sum(p.Data))
+	log.Println(givenHash)
+	log.Println(calculatedHash)
 	return givenHash == calculatedHash
 }
 
@@ -32,7 +35,7 @@ func (p *Newpeer) ResetPingTimeInterval() {
 
 func (p *Newpeer) CheckForPieceInRemote() bool {
 	zero := 1 << 7
-	has := int(p.Bitfield[int(p.PeerIndex)/8]) & (zero >> (int(p.PeerIndex) % 8))
+	has := int(p.Bitfield[int(p.PieceIndex)/8]) & (zero >> (int(p.PieceIndex) % 8))
 	if has != 0 {
 		return true
 	}

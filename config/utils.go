@@ -3,18 +3,8 @@ package config
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
 	"math/rand"
-
-	"github.com/atotto/clipboard"
 )
-
-func CopyToClipboard(text string) {
-	err := clipboard.WriteAll(text)
-	if err != nil {
-		log.Println("Can't copy ip address to clipboard")
-	}
-}
 
 func FourBytesToInt32(buff []byte) int32 {
 	return int32(binary.BigEndian.Uint32(buff))

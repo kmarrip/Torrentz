@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"math/rand"
 	"os"
+	"time"
 
-	"github.com/kmarrip/torrentz/config"
+	//"github.com/kmarrip/torrentz/config"
 	"github.com/kmarrip/torrentz/parse"
 	"github.com/kmarrip/torrentz/peer"
 	"github.com/kmarrip/torrentz/tracker"
@@ -23,7 +25,6 @@ func main() {
 	log.Println(torrent.Announce)
 	peers := tracker.GetPeers(torrent)
 	log.Println(peers)
-	os.Exit(0)
 	log.Printf("Total peers found %d\n", len(peers))
 	log.Printf("Total pieces %d\n", len(torrent.PieceHashes))
 
@@ -31,37 +32,41 @@ func main() {
 	os.Mkdir(torrent.Info.Name, 0755)
 
 	jobs := make(chan int, len(torrent.PieceHashes))
-	for i := 0; i < len(torrent.PieceHashes); i++ {
-		jobs <- i
-	}
+	//doneJobs := make(chan int, len(torrent.PieceHashes))
 
-	for w := 1; w < config.MaxWorkers; w++ {
-		go worker(jobs, torrent, peers)
-	}
+	//for i := 0; i < len(torrent.PieceHashes); i++ {
+	//	jobs <- i
+	//}
+	jobs <- 500
 
-	for len(jobs) != 0 {
+	//for w := 0; w < config.MaxWorkers; w++ {
+	//	go worker(jobs, doneJobs, torrent, peers)
+	//}
+
+	//for len(doneJobs) < 1 {
 		// until there are no more jobs to do
-	}
-
+	//}
+	log.Println("All pieces downloaded, Reassembling pieces")
+	torrent.ReassemblePieces()
 }
 
-func worker(jobs chan int, torrent parse.Torrent, peers []peer.Peer) {
-
+func worker(jobs chan int, doneJobs chan int, torrent parse.Torrent, peers []peer.Peer) {
 	for job := range jobs {
 		newPeer := peer.Newpeer{}
 		// get a random peer and see if the piece can be downloaded
 		//log.Printf("Picking up %d piece index\n", job)
 		remotePeer := peers[rand.Intn(len(peers))]
 		newPeer.New(torrent, remotePeer.IpAddress, int32(remotePeer.Port), uint32(job))
-		err := newPeer.Download()
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		err := newPeer.DownloadWithTimeout(ctx)
 		if err != nil {
 			// download failed re-enque the job
-			//log.Printf("%d piece index job failed, redoing it\n",job)
 			jobs <- job
 			continue
 		}
-		pendingJobs := len(jobs)
+		doneJobs <- job
 		totalJobs := len(torrent.PieceHashes)
-		log.Printf("Progress %d/%d pieces\n", totalJobs-pendingJobs, totalJobs)
+		log.Printf("Progress %d/%d pieces\n", len(doneJobs), totalJobs)
 	}
 }

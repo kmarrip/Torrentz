@@ -9,7 +9,6 @@ import (
 )
 
 func (p *Newpeer) processPeerMessage() {
-
 	messageLengthBuffer := make([]byte, 4)
 	io.ReadFull(p.Conn, messageLengthBuffer)
 	messageLength := binary.BigEndian.Uint32(messageLengthBuffer)
