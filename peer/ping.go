@@ -39,7 +39,7 @@ func (pm *pingMap) Range() []OffsetLengthPiece {
 	return returnValue
 }
 
-func (p *Newpeer) PingForPieces() {
+func (p *PeerConnection) PingForPieces() {
 	for {
 		time.Sleep(time.Duration(p.PingTimeInterval) * time.Millisecond)
 		if p.Choke == true {
@@ -68,7 +68,7 @@ func (p *Newpeer) PingForPieces() {
 	}
 }
 
-func (p *Newpeer) SendRequestPeerMessage(key OffsetLengthPiece) {
+func (p *PeerConnection) SendRequestPeerMessage(key OffsetLengthPiece) {
 	// block is made of pieces
 
 	// 4-byte message length

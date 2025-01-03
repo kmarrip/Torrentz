@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	//"github.com/kmarrip/torrentz/config"
+	"github.com/kmarrip/torrentz/config"
 	"github.com/kmarrip/torrentz/parse"
 	"github.com/kmarrip/torrentz/peer"
 	"github.com/kmarrip/torrentz/tracker"
@@ -32,27 +32,26 @@ func main() {
 	os.Mkdir(torrent.Info.Name, 0755)
 
 	jobs := make(chan int, len(torrent.PieceHashes))
-	//doneJobs := make(chan int, len(torrent.PieceHashes))
+	doneJobs := make(chan int, len(torrent.PieceHashes))
 
-	//for i := 0; i < len(torrent.PieceHashes); i++ {
-	//	jobs <- i
-	//}
-	jobs <- 500
+	for i := 0; i < len(torrent.PieceHashes); i++ {
+		jobs <- i
+	}
 
-	//for w := 0; w < config.MaxWorkers; w++ {
-	//	go worker(jobs, doneJobs, torrent, peers)
-	//}
+	for w := 0; w < config.MaxWorkers; w++ {
+		go worker(jobs, doneJobs, torrent, peers)
+	}
 
-	//for len(doneJobs) < 1 {
-		// until there are no more jobs to do
-	//}
+	for len(doneJobs) < 1 {
+		 //until there are no more jobs to do
+	}
 	log.Println("All pieces downloaded, Reassembling pieces")
 	torrent.ReassemblePieces()
 }
 
 func worker(jobs chan int, doneJobs chan int, torrent parse.Torrent, peers []peer.Peer) {
 	for job := range jobs {
-		newPeer := peer.Newpeer{}
+		newPeer := peer.PeerConnection{}
 		// get a random peer and see if the piece can be downloaded
 		//log.Printf("Picking up %d piece index\n", job)
 		remotePeer := peers[rand.Intn(len(peers))]

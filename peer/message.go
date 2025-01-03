@@ -8,7 +8,7 @@ import (
 	"github.com/kmarrip/torrentz/config"
 )
 
-func (p *Newpeer) processPeerMessage() {
+func (p *PeerConnection) processPeerMessage() {
 	messageLengthBuffer := make([]byte, 4)
 	io.ReadFull(p.Conn, messageLengthBuffer)
 	messageLength := binary.BigEndian.Uint32(messageLengthBuffer)
@@ -49,7 +49,7 @@ func (p *Newpeer) processPeerMessage() {
 	}
 }
 
-func (p *Newpeer) SendNoPayloadPeerMessage(messageType int) {
+func (p *PeerConnection) SendNoPayloadPeerMessage(messageType int) {
 	// interested, not interested, choke and unchoke are no payload messages
 	var buff bytes.Buffer
 	messageLength := 1

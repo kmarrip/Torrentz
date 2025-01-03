@@ -15,7 +15,7 @@ import (
 // second send 8 reserved bytes which are always 0
 // thrid send the 20 byte hash_info of the info part of the torrent file
 // fourth send the 20 bytes self selected peerId that was selected first --> is this my peerId or other peer's ID ??
-func (p *Newpeer) VerifyPeerHandshakeResponse(peerHandeshakeResponse []byte) error {
+func (p *PeerConnection) VerifyPeerHandshakeResponse(peerHandeshakeResponse []byte) error {
 	prefixLength := peerHandeshakeResponse[:1][0]
 	if prefixLength != byte(19) {
 		return errors.New("Peer handshake reponse failed")
@@ -30,7 +30,7 @@ func (p *Newpeer) VerifyPeerHandshakeResponse(peerHandeshakeResponse []byte) err
 	return nil
 }
 
-func (p *Newpeer) Handshake() (net.Conn, error) {
+func (p *PeerConnection) Handshake() (net.Conn, error) {
 	var buffer bytes.Buffer
 	buffer.Write([]byte{19})
 	buffer.WriteString("BitTorrent protocol")

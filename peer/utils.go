@@ -7,12 +7,12 @@ import (
 	"os"
 )
 
-func (p *Newpeer) WritePiece() {
+func (p *PeerConnection) WritePiece() {
 	writeToFile := fmt.Sprintf("./%s/%x", p.Torrent.Info.Name, sha1.Sum(p.Data))
 	os.WriteFile(writeToFile, p.Data, 0644)
 }
 
-func (p *Newpeer) CheckIfPieceDone() bool {
+func (p *PeerConnection) CheckIfPieceDone() bool {
 	for _, i := range p.ping.Range() {
 		if p.ping.Get(i) == 0 {
 			return false
@@ -21,7 +21,7 @@ func (p *Newpeer) CheckIfPieceDone() bool {
 	return true
 }
 
-func (p *Newpeer) VerifyHashIntegrity() bool {
+func (p *PeerConnection) VerifyHashIntegrity() bool {
 	givenHash := fmt.Sprintf("%x", p.Torrent.PieceHashes[p.PieceIndex])
 	calculatedHash := fmt.Sprintf("%x", sha1.Sum(p.Data))
 	log.Println(givenHash)
@@ -29,11 +29,11 @@ func (p *Newpeer) VerifyHashIntegrity() bool {
 	return givenHash == calculatedHash
 }
 
-func (p *Newpeer) ResetPingTimeInterval() {
+func (p *PeerConnection) ResetPingTimeInterval() {
 	p.PingTimeInterval = 400
 }
 
-func (p *Newpeer) CheckForPieceInRemote() bool {
+func (p *PeerConnection) CheckForPieceInRemote() bool {
 	zero := 1 << 7
 	has := int(p.Bitfield[int(p.PieceIndex)/8]) & (zero >> (int(p.PieceIndex) % 8))
 	if has != 0 {

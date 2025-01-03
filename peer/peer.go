@@ -22,7 +22,7 @@ type OffsetLengthPiece struct {
 	Length uint32
 }
 
-type Newpeer struct {
+type PeerConnection struct {
 	Torrent          parse.Torrent
 	RemoteIp         net.IP
 	Port             int32
@@ -48,7 +48,7 @@ type Newpeer struct {
 //6. Start a new go routine, which pings requestPeerMessage
 //7. Process messages as they come by
 
-func (p *Newpeer) New(t parse.Torrent, rIp net.IP, port int32, pieceIndex uint32) {
+func (p *PeerConnection) New(t parse.Torrent, rIp net.IP, port int32, pieceIndex uint32) {
 	p.Torrent = t
 	p.RemoteIp = rIp
 	p.PieceIndex =  pieceIndex
@@ -82,7 +82,7 @@ func (p *Newpeer) New(t parse.Torrent, rIp net.IP, port int32, pieceIndex uint32
 	}
 }
 
-func (p *Newpeer) DownloadWithTimeout(ctx context.Context) error {
+func (p *PeerConnection) DownloadWithTimeout(ctx context.Context) error {
   routineChannel := make(chan int)
   go p.Download(routineChannel)
   for {
@@ -99,7 +99,7 @@ func (p *Newpeer) DownloadWithTimeout(ctx context.Context) error {
 	}
 }
 
-func (p *Newpeer) Download(routineChannel chan int)  {
+func (p *PeerConnection) Download(routineChannel chan int)  {
 	conn, err := p.Handshake()
 	if err != nil {
     routineChannel <- 1
@@ -145,7 +145,7 @@ func (p *Newpeer) Download(routineChannel chan int)  {
   routineChannel <- 0
 }
 
-func (p *Newpeer) AddBlock(buff []byte) {
+func (p *PeerConnection) AddBlock(buff []byte) {
 	//4-byte pieceIndex
 	//4-byte piece offset
 	//rest is for data
