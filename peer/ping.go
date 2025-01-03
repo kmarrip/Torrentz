@@ -39,32 +39,37 @@ func (pm *pingMap) Range() []OffsetLengthPiece {
 	return returnValue
 }
 
-func (p *PeerConnection) PingForPieces() {
+func (p *PeerConnection) PingForPieces(quitPingChannel chan int) {
 	for {
-		time.Sleep(time.Duration(p.PingTimeInterval) * time.Millisecond)
-		if p.Choke == true {
-			// ping time increases by 10% everytime, this is reset after an unchoke or piece message
-			p.PingTimeInterval *= 1.1
-			continue
-		}
-
-		var key OffsetLengthPiece
-		needToPing := false
-
-		for _, i := range p.ping.Range() {
-			if p.ping.Get(i) == 0 {
-				key.Offset = i.Offset
-				key.Length = i.Length
-				needToPing = true
-				break
-			}
-		}
-		if !needToPing {
-			log.Println("nothing to ping")
+		select {
+		case <-quitPingChannel:
 			return
-		}
-		p.SendRequestPeerMessage(key)
+		default:
+			time.Sleep(time.Duration(p.PingTimeInterval) * time.Millisecond)
+			if p.Choke == true {
+				// ping time increases by 10% everytime, this is reset after an unchoke or piece message
+				p.PingTimeInterval *= 1.1
+				continue
+			}
 
+
+      // This checks if there's anything to be requested for 
+ 			var key OffsetLengthPiece
+			needToPing := false
+
+			for _, i := range p.ping.Range() {
+				if p.ping.Get(i) == 0 {
+					key.Offset = i.Offset
+					key.Length = i.Length
+					needToPing = true
+					break
+				}
+			}
+			if !needToPing {
+				return
+			}
+			p.SendRequestPeerMessage(key)
+		}
 	}
 }
 

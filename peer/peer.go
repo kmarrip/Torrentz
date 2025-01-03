@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"log"
 	"net"
 
 	"github.com/kmarrip/torrentz/config"
@@ -12,7 +11,6 @@ import (
 )
 
 type Peer struct {
-	//PeerId    string `bencode:"peer id"`
 	Port      int64  `bencode:"port,omitEmpty"`
 	IpAddress net.IP `bencode:"ip"`
 }
@@ -28,13 +26,12 @@ type PeerConnection struct {
 	Port             int32
 	Conn             net.Conn
 	BlockLength      uint32
-	PieceIndex        uint32
+	PieceIndex       uint32
 	Choke            bool
 	Bitfield         []byte
 	Data             []byte
 	PingTimeInterval float32
-	//BlockIndex       map[OffsetLengthPiece]int
-	ping pingMap
+	ping             pingMap
 }
 
 //connection to a peer happens in this way
@@ -51,58 +48,55 @@ type PeerConnection struct {
 func (p *PeerConnection) New(t parse.Torrent, rIp net.IP, port int32, pieceIndex uint32) {
 	p.Torrent = t
 	p.RemoteIp = rIp
-	p.PieceIndex =  pieceIndex
- 	p.BlockLength = config.BlockLength
+	p.PieceIndex = pieceIndex
+	p.BlockLength = config.BlockLength
 	p.Choke = true
 	p.PingTimeInterval = 400
 	p.Bitfield = make([]byte, len(t.PieceHashes))
 	p.Port = port
-
-  sizeOfThisPiece := p.Torrent.Info.Length - (int64(pieceIndex) * p.Torrent.Info.PieceLength)
-	p.Data = make([]byte, sizeOfThisPiece)
-
 	p.ping = pingMap{
 		BlockIndex: make(map[OffsetLengthPiece]int),
 	}
-  log.Println(sizeOfThisPiece)
-  log.Println(p.BlockLength)
-  numberOfBlocks := sizeOfThisPiece / int64(p.BlockLength)
-  log.Printf("%v number of blocks in this piece\n",sizeOfThisPiece /int64(p.BlockLength))
-  log.Println(sizeOfThisPiece % int64(p.BlockLength))
-	for b := 0; b < int(numberOfBlocks); b++ {
-		key := OffsetLengthPiece{Offset: uint32(b) * uint32(p.BlockLength), Length: p.BlockLength}
+
+	sizeOfThisPiece := p.Torrent.Info.Length - (int64(pieceIndex) * p.Torrent.Info.PieceLength)
+	numberOfBlocks := int(sizeOfThisPiece / int64(p.BlockLength))
+
+	p.Data = make([]byte, sizeOfThisPiece)
+
+	for b := 0; b < numberOfBlocks; b++ {
+		key := OffsetLengthPiece{Offset: uint32(b) * p.BlockLength, Length: p.BlockLength}
 		p.ping.Set(key, 0)
 	}
 
-	if sizeOfThisPiece % int64(p.BlockLength) != 0 {
+	if sizeOfThisPiece%int64(p.BlockLength) != 0 {
 		var key OffsetLengthPiece
 		key.Offset = uint32(numberOfBlocks) * p.BlockLength
-    key.Length = uint32(sizeOfThisPiece) % p.BlockLength 
+		key.Length = uint32(sizeOfThisPiece) % p.BlockLength
 		p.ping.Set(key, 0)
 	}
 }
 
 func (p *PeerConnection) DownloadWithTimeout(ctx context.Context) error {
-  routineChannel := make(chan int)
-  go p.Download(routineChannel)
-  for {
-    select {
+	routineChannel := make(chan int)
+	go p.Download(routineChannel)
+	for {
+		select {
 		case <-ctx.Done():
 			return errors.New("Remote peer timeout")
-    case val:=<-routineChannel:
-      if val == 0{
-        return nil
-      }else {
-        return errors.New("Remote connection failed")
-      }
+		case val := <-routineChannel:
+			if val == 0 {
+				return nil
+			} else {
+				return errors.New("Remote connection failed")
+			}
 		}
 	}
 }
 
-func (p *PeerConnection) Download(routineChannel chan int)  {
+func (p *PeerConnection) Download(routineChannel chan int) {
 	conn, err := p.Handshake()
 	if err != nil {
-    routineChannel <- 1
+		routineChannel <- 1
 		return
 	}
 	//log.Println("peer handshake done")
@@ -116,8 +110,8 @@ func (p *PeerConnection) Download(routineChannel chan int)  {
 
 	// check if the remote peer has the piece you are interested in
 	if !p.CheckForPieceInRemote() {
-    routineChannel <- 1
-    return
+		routineChannel <- 1
+		return
 		// return errors.New("Remote doesn't have the piece")
 	}
 
@@ -133,16 +127,18 @@ func (p *PeerConnection) Download(routineChannel chan int)  {
 	//log.Println("Waiting for Unchoke message from remote peer")
 	p.processPeerMessage()
 
-	go p.PingForPieces()
+	quitPingChannel := make(chan int)
+	go p.PingForPieces(quitPingChannel)
 
 	for {
 		if p.VerifyHashIntegrity() {
 			p.WritePiece()
-		  break
-    }
+      quitPingChannel <- 0
+			break
+		}
 		p.processPeerMessage()
 	}
-  routineChannel <- 0
+	routineChannel <- 0
 }
 
 func (p *PeerConnection) AddBlock(buff []byte) {

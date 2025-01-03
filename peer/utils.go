@@ -24,8 +24,6 @@ func (p *PeerConnection) CheckIfPieceDone() bool {
 func (p *PeerConnection) VerifyHashIntegrity() bool {
 	givenHash := fmt.Sprintf("%x", p.Torrent.PieceHashes[p.PieceIndex])
 	calculatedHash := fmt.Sprintf("%x", sha1.Sum(p.Data))
-	log.Println(givenHash)
-	log.Println(calculatedHash)
 	return givenHash == calculatedHash
 }
 

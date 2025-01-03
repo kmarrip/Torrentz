@@ -17,11 +17,11 @@ func (t Torrent) ReassemblePieces() {
 	}
 	defer fileFd.Close()
 
-	for _,piece := range t.PieceHashes {
+	for _, piece := range t.PieceHashes {
 		pieceFile := fmt.Sprintf("./%s/%x", folderDestination, piece)
 		buff, err := os.ReadFile(pieceFile)
 		if err != nil {
-      log.Print(err)
+			log.Print(err)
 			log.Printf("Error writing %x piece\n", piece)
 		}
 		fileFd.Write(buff)
