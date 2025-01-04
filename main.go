@@ -25,6 +25,10 @@ func main() {
 	torrent := parse.ParseTorrent(fd)
 	log.Println(torrent.Announce)
 	peers := tracker.GetPeers(torrent)
+  
+  if len(peers) == 0 {
+    log.Fatalln("No peers found for this torrent")
+  }
 
 	log.Printf("Total pieces %d\n", len(torrent.PieceHashes))
 	log.Printf("Total peers found %d\n", len(peers))
