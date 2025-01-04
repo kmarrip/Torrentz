@@ -3,7 +3,6 @@ package peer
 import (
 	"crypto/sha1"
 	"fmt"
-	"log"
 	"os"
 )
 

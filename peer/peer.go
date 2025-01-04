@@ -58,13 +58,16 @@ func (p *PeerConnection) New(t parse.Torrent, rIp net.IP, port int32, pieceIndex
 		BlockIndex: make(map[OffsetLengthPiece]int),
 	}
 
-	sizeOfThisPiece := p.Torrent.Info.Length - (int64(pieceIndex) * p.Torrent.Info.PieceLength)
+	sizeOfThisPiece := p.Torrent.Info.PieceLength
+	if int(pieceIndex)+1 == len(p.Torrent.PieceHashes) {
+		//The last piece may not be of full size
+		sizeOfThisPiece = p.Torrent.Info.Length - (int64(pieceIndex) * p.Torrent.Info.PieceLength)
+	}
+  p.Data = make([]byte, sizeOfThisPiece)
 	numberOfBlocks := int(sizeOfThisPiece / int64(p.BlockLength))
 
-	p.Data = make([]byte, sizeOfThisPiece)
-
 	for b := 0; b < numberOfBlocks; b++ {
-		key := OffsetLengthPiece{Offset: uint32(b) * p.BlockLength, Length: p.BlockLength}
+		key := OffsetLengthPiece{Offset: uint32(b) * uint32(p.BlockLength), Length: p.BlockLength}
 		p.ping.Set(key, 0)
 	}
 
@@ -127,13 +130,11 @@ func (p *PeerConnection) Download(routineChannel chan int) {
 	//log.Println("Waiting for Unchoke message from remote peer")
 	p.processPeerMessage()
 
-	quitPingChannel := make(chan int)
-	go p.PingForPieces(quitPingChannel)
+	go p.PingForPieces()
 
 	for {
 		if p.VerifyHashIntegrity() {
 			p.WritePiece()
-      quitPingChannel <- 0
 			break
 		}
 		p.processPeerMessage()

@@ -11,6 +11,7 @@ import (
 	"github.com/kmarrip/torrentz/parse"
 	"github.com/kmarrip/torrentz/peer"
 	"github.com/kmarrip/torrentz/tracker"
+	"github.com/schollz/progressbar/v3"
 )
 
 func main() {
@@ -24,9 +25,12 @@ func main() {
 	torrent := parse.ParseTorrent(fd)
 	log.Println(torrent.Announce)
 	peers := tracker.GetPeers(torrent)
-	log.Println(peers)
-	log.Printf("Total peers found %d\n", len(peers))
+
 	log.Printf("Total pieces %d\n", len(torrent.PieceHashes))
+	log.Printf("Total peers found %d\n", len(peers))
+	log.Printf("Peer Id %s\n", torrent.PeerId)
+
+	bar := progressbar.Default(int64(len(torrent.PieceHashes)))
 
 	// this is where the files will be downloaded
 	os.Mkdir(torrent.Info.Name, 0755)
@@ -39,7 +43,7 @@ func main() {
 	}
 
 	for w := 0; w < config.MaxWorkers; w++ {
-		go worker(jobs, doneJobs, torrent, peers)
+		go worker(jobs, doneJobs, torrent, peers, bar)
 	}
 
 	for len(doneJobs) < len(torrent.PieceHashes) {
@@ -49,7 +53,7 @@ func main() {
 	torrent.ReassemblePieces()
 }
 
-func worker(jobs chan int, doneJobs chan int, torrent parse.Torrent, peers []peer.Peer) {
+func worker(jobs chan int, doneJobs chan int, torrent parse.Torrent, peers []peer.Peer, bar interface{ Add(int) error }) {
 	for job := range jobs {
 		// get a random peer and see if the piece can be downloaded
 		//log.Printf("Picking up %d piece index\n", job)
@@ -67,7 +71,6 @@ func worker(jobs chan int, doneJobs chan int, torrent parse.Torrent, peers []pee
 			continue
 		}
 		doneJobs <- job
-		totalJobs := len(torrent.PieceHashes)
-		log.Printf("Progress %d/%d pieces\n", len(doneJobs), totalJobs)
+		bar.Add(1)
 	}
 }
