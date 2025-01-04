@@ -65,7 +65,7 @@ func worker(jobs chan int, doneJobs chan int, torrent parse.Torrent, peers []pee
 		peerConn := peer.PeerConnection{}
 
 		peerConn.New(torrent, remotePeer.IpAddress, int32(remotePeer.Port), uint32(job))
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		err := peerConn.DownloadWithTimeout(ctx)
 

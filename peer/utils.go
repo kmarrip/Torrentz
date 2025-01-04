@@ -11,15 +11,6 @@ func (p *PeerConnection) WritePiece() {
 	os.WriteFile(writeToFile, p.Data, 0644)
 }
 
-func (p *PeerConnection) CheckIfPieceDone() bool {
-	for _, i := range p.ping.Range() {
-		if p.ping.Get(i) == 0 {
-			return false
-		}
-	}
-	return true
-}
-
 func (p *PeerConnection) VerifyHashIntegrity() bool {
 	givenHash := fmt.Sprintf("%x", p.Torrent.PieceHashes[p.PieceIndex])
 	calculatedHash := fmt.Sprintf("%x", sha1.Sum(p.Data))

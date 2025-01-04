@@ -28,16 +28,6 @@ func (pm *pingMap) Get(key OffsetLengthPiece) int {
 	return pm.BlockIndex[key]
 }
 
-func (pm *pingMap) Range() []OffsetLengthPiece {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
-	returnValue := []OffsetLengthPiece{}
-	for k := range pm.BlockIndex {
-		returnValue = append(returnValue, k)
-	}
-	return returnValue
-}
-
 func (p *PeerConnection) PingForPieces() {
 	for {
 		time.Sleep(time.Duration(p.PingTimeInterval) * time.Millisecond)
@@ -47,17 +37,16 @@ func (p *PeerConnection) PingForPieces() {
 			continue
 		}
 		// This checks if there's anything to be requested for
-		var key OffsetLengthPiece
 		needToPing := false
-
-		for _, i := range p.ping.Range() {
-			if p.ping.Get(i) == 0 {
-				key.Offset = i.Offset
-				key.Length = i.Length
-				needToPing = true
+    
+    p.ping.mu.Lock()
+    defer p.ping.mu.Unlock()
+    
+    for key,val := range p.ping.BlockIndex {
+      if val == 0 {
         p.SendRequestPeerMessage(key)
-			}
-		}
+      }
+    }	
 		if !needToPing {
 			return
 		}
