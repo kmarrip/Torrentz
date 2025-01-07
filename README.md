@@ -1,23 +1,27 @@
-# torrentz
-This project tries to implement the Bit-Torrent protcol described here [BEP-3](https://www.bittorrent.org/beps/bep_0003.html)
+# Torrentz
 
-The protocol is implemented by these go-packages explained below
+**Torrentz** is an implementation of the BitTorrent protocol, as described in [BEP-3](https://www.bittorrent.org/beps/bep_0003.html). This project uses several Go packages, each handling a specific part of the protocol. Below is an overview of the key components.  
+This project doesn't support seeding.
 
-### Tracker 
-Deals with the announcer part of the protocol,
-The torrent is first parsed and the announcer is queried for the list of peer locations
-Two ways implemented 1) http/https and 2) udp
+## **Packages**
+
+### **Tracker**
+The `Tracker` package handles communication with trackers, which provide a list of peers participating in the torrent swarm. This includes:  
+1. Querying the tracker for peer location.  
+2. Supports both **HTTP/HTTPS** and **UDP** protocols for tracker communication.
 
 ### Parse
-Parses the .torrent and magnet links to a struct
+The `Parse` package is responsible for converting .torrent files and magnet links into a struct.
+This data is used by other components to manage the torrent lifecycle.
 
-### Peer
-Peer is where the actual communication happens
-- First the client does a handshake with the remote peer
-- Second the client checks if the remote peers has the piece the client is interested in
-- Third the client opens a raw TCP connection with the remote peer and gets the pieces in pipelined fashion
-- Fourth the client verifies the integrity of the file by checking the hashes
-- Fifth if the hashes dont match, the piece is redownloaded from a another new random peer
-- Sixth if the hashes match, the 256KB in-memory piece is flushed to disk
+### **Peer**
+The `Peer` package handles peer-to-peer communication
 
-At the end all the pieces are written into a single file.
+1. **Handshake**: Initiates a connection by performing a handshake with a remote peer.  
+2. **Piece Availability**: Checks whether the remote peer has the desired piece of the file.  
+3. **TCP Connection**: Establishes a raw TCP connection with the remote peer to download pieces in a pipelined fashion.  
+4. **Hash Verification**: Verifies the integrity of each piece by comparing its hash with the expected value.  
+5. **Retry on Failure**: If a hash mismatch occurs, the piece is redownloaded from another random peer.  
+6. **Write to Disk**: Upon successful verification, the 256KB in-memory piece is flushed to disk.
+
+When all pieces are downloaded and verified, they are combined into a single output file.
