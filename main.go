@@ -15,20 +15,33 @@ import (
 )
 
 func main() {
-	inputFile := os.Args[1]
-	fd, err := os.Open(inputFile)
-	if err != nil {
-		log.Fatalln("Error opening torrent file")
-	}
-	defer fd.Close()
+	marker := os.Args[1]
+	linkOrfile := os.Args[2]
+	var torrent parse.Torrent
 
-	torrent := parse.ParseTorrent(fd)
+	switch marker {
+	case "-m":
+		mag := parse.ParseMagnetLink(linkOrfile)
+		log.Println(mag)
+		log.Println("Magnet link support in progress")
+		os.Exit(0)
+
+	case "-t":
+		fd, err := os.Open(linkOrfile)
+		if err != nil {
+			log.Fatalln("Error opening torrent file")
+		}
+		defer fd.Close()
+		torrent = parse.ParseTorrent(fd)
+
+	}
+
 	log.Println(torrent.Announce)
 	peers := tracker.GetPeers(torrent)
-  
-  if len(peers) == 0 {
-    log.Fatalln("No peers found for this torrent")
-  }
+
+	if len(peers) == 0 {
+		log.Fatalln("No peers found for this torrent")
+	}
 
 	log.Printf("Total pieces %d\n", len(torrent.PieceHashes))
 	log.Printf("Total peers found %d\n", len(peers))

@@ -38,15 +38,15 @@ func (p *PeerConnection) PingForPieces() {
 		}
 		// This checks if there's anything to be requested for
 		needToPing := false
-    
-    p.ping.mu.Lock()
-    defer p.ping.mu.Unlock()
-    
-    for key,val := range p.ping.BlockIndex {
-      if val == 0 {
-        p.SendRequestPeerMessage(key)
-      }
-    }	
+
+		p.ping.mu.Lock()
+		defer p.ping.mu.Unlock()
+
+		for key, val := range p.ping.BlockIndex {
+			if val == 0 {
+				p.SendRequestPeerMessage(key)
+			}
+		}
 		if !needToPing {
 			return
 		}

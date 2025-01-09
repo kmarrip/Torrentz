@@ -63,7 +63,7 @@ func (p *PeerConnection) New(t parse.Torrent, rIp net.IP, port int32, pieceIndex
 		//The last piece may not be of full size
 		sizeOfThisPiece = p.Torrent.Info.Length - (int64(pieceIndex) * p.Torrent.Info.PieceLength)
 	}
-  p.Data = make([]byte, sizeOfThisPiece)
+	p.Data = make([]byte, sizeOfThisPiece)
 	numberOfBlocks := int(sizeOfThisPiece / int64(p.BlockLength))
 
 	for b := 0; b < numberOfBlocks; b++ {
