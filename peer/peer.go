@@ -4,7 +4,9 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
+	"log"
 	"net"
+	"sync"
 
 	"github.com/kmarrip/torrentz/config"
 	"github.com/kmarrip/torrentz/parse"
@@ -94,6 +96,30 @@ func (p *PeerConnection) DownloadWithTimeout(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+func (p *PeerConnection) BootPeer(wg sync.WaitGroup) error{
+  defer wg.Done()
+  conn, err := p.Handshake()
+  if err != nil {
+    log.Println("Peer handshake failed")
+    return err
+  }
+  p.Conn = conn 
+  // this peer connection never really gets closed
+
+  //First message is have or Bitfield
+  p.processPeerMessage()
+  
+
+  //Second send interested no matter what
+  p.SendNoPayloadPeerMessage(config.Interested)
+
+  //Third Unchoke the peer
+  p.SendNoPayloadPeerMessage(config.Unchoke)
+
+  //Fourth wait for unchoke message from peer
+  p.processPeerMessage()
 }
 
 func (p *PeerConnection) Download(routineChannel chan int) {

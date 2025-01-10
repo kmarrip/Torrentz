@@ -1,15 +1,13 @@
 package tracker
 
 import (
-	"io"
 	"log"
-	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 
 	"github.com/kmarrip/torrentz/parse"
 	"github.com/kmarrip/torrentz/peer"
-	"github.com/zeebo/bencode"
 )
 
 type TrackerResponse struct {
@@ -49,19 +47,6 @@ func GetNetworkAddress(announceUrl string) string {
 	return netUrl
 }
 
-func httpAnnoucer(annouceUrl string) []peer.Peer {
-	resp, err := http.Get(annouceUrl)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	var response TrackerResponse
-	bencode.DecodeBytes(body, &response)
-	return response.Peers
-}
-
 func GetPeers(t parse.Torrent) []peer.Peer {
 	announceUrl := BuildTrackerUrl(t)
 	parsedUrl, err := url.Parse(announceUrl)
@@ -70,17 +55,24 @@ func GetPeers(t parse.Torrent) []peer.Peer {
 	}
 	schema := parsedUrl.Scheme
 
-	// TODO: the schema could be https/http/tcp/udp
-	// Need to support all the schemas
+	returnValue := []peer.Peer{}
 
 	switch schema {
 	case "https":
-		return httpAnnoucer(announceUrl)
+		returnValue = append(returnValue, httpAnnoucer(announceUrl)...)
 	case "http":
-		return httpAnnoucer(announceUrl)
+		returnValue = append(returnValue, httpAnnoucer(announceUrl)...)
 	case "udp":
-		return udpAnnouncer(t)
+		returnValue = append(returnValue, udpAnnouncer(t)...)
 	default:
-		return httpAnnoucer(announceUrl)
+		log.Fatalln("Announcer schema not supported")
+		return nil
 	}
+  var wg sync.WaitGroup
+  for _,peer := range returnValue {
+    wg.Add(1)
+    p.BootPeer(wg)
+  }
+  wg.Wait()
+  return returnValue 
 }
