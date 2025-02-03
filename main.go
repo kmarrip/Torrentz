@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/kmarrip/torrentz/config"
@@ -52,25 +53,25 @@ func main() {
 	// this is where the files will be downloaded
 	os.Mkdir(torrent.Info.Name, 0755)
 
+	var jobsWaitGroup sync.WaitGroup
 	jobs := make(chan int, len(torrent.PieceHashes))
-	doneJobs := make(chan int, len(torrent.PieceHashes))
 
 	for i := 0; i < len(torrent.PieceHashes); i++ {
 		jobs <- i
+		jobsWaitGroup.Add(1)
 	}
 
 	for w := 0; w < config.MaxWorkers; w++ {
-		go worker(jobs, doneJobs, torrent, peers, bar)
+		go worker(jobs, jobsWaitGroup, torrent, peers, bar)
 	}
 
-	for len(doneJobs) < len(torrent.PieceHashes) {
-		//until there are no more jobs to do
-	}
+	jobsWaitGroup.Wait()
+
 	log.Println("All pieces downloaded, Reassembling pieces")
 	torrent.ReassemblePieces()
 }
 
-func worker(jobs chan int, doneJobs chan int, torrent parse.Torrent, peers []peer.Peer, bar interface{ Add(int) error }) {
+func worker(jobs chan int, jobsWaitGroup sync.WaitGroup, torrent parse.Torrent, peers []peer.Peer, bar interface{ Add(int) error }) {
 	for job := range jobs {
 		// get a random peer and see if the piece can be downloaded
 		//log.Printf("Picking up %d piece index\n", job)
@@ -87,7 +88,8 @@ func worker(jobs chan int, doneJobs chan int, torrent parse.Torrent, peers []pee
 			jobs <- job
 			continue
 		}
-		doneJobs <- job
+
+		jobsWaitGroup.Done()
 		bar.Add(1)
 	}
 }
